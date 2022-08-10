@@ -1,0 +1,16 @@
+{
+    "name": "Components",
+    "rootNamespace": "PlanetGearScheme",
+    "references": [
+        "GUID:3d0cace7f8ac1534c8ae5e00892ea513"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

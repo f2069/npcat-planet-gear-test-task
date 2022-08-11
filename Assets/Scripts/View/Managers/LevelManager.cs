@@ -37,11 +37,6 @@ namespace PlanetGearScheme.View.Managers {
             => _trash.Dispose();
 
         private void InitDetail() {
-            // @todo remove this
-            if (detailSpawnPoint.transform.childCount > 0) {
-                Destroy(detailSpawnPoint.GetChild(0).gameObject);
-            }
-
             _modelView = Instantiate(detailData.Prefab, detailSpawnPoint)
                 .GetComponent<DetailView>();
 

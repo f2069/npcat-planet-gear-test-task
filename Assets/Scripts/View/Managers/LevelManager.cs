@@ -1,6 +1,7 @@
 ﻿using Cinemachine;
 using PlanetGearScheme.Core.Data;
 using PlanetGearScheme.Core.Disposables;
+using PlanetGearScheme.Core.Interfaces;
 using PlanetGearScheme.View.Details;
 using PlanetGearScheme.View.UI.Widgets;
 using UnityEngine;
@@ -26,7 +27,7 @@ namespace PlanetGearScheme.View.Managers {
             _trash.Retain(partsListWidget.SubscribeOnSwitchList(OnToggleList));
             _trash.Retain(partsListWidget.SubscribeOnOnSelectPart(OnSelectPart));
 
-            partsListWidget.SetData(detailData);
+            partsListWidget.SetData(detailData, detailData.Parts);
         }
 
         private void Start()
@@ -55,7 +56,7 @@ namespace PlanetGearScheme.View.Managers {
         private void OnToggleList(bool listState)
             => _modelView.DisassembleDetail(listState);
 
-        private void OnSelectPart(PlanetarnyReductorDetail partData)
+        private void OnSelectPart(IDetailPart partData)
             => _modelView.SelectPart(partData);
     }
 }

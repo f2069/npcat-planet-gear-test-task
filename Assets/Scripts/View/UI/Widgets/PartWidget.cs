@@ -1,27 +1,29 @@
-﻿using PlanetGearScheme.Core.Data;
-using PlanetGearScheme.Core.Disposables;
+﻿using PlanetGearScheme.Core.Disposables;
 using PlanetGearScheme.Core.Interfaces;
 using TMPro;
 using UnityEngine;
 
 namespace PlanetGearScheme.View.UI.Widgets {
-    public class PartWidget : MonoBehaviour, IItemRenderer<PlanetarnyReductorDetail> {
+    public class PartWidget : MonoBehaviour, IItemRenderer<IDetailPart> {
         [SerializeField] private TMP_Text label;
 
-        public delegate void OnChange(PlanetarnyReductorDetail partData);
+        public delegate void OnChange(IDetailPart partData);
 
         private event OnChange OnChangeEvent;
 
-        private PlanetarnyReductorDetail _data;
+        private IDetailPart _data;
 
         public void OnClick()
             => OnChangeEvent?.Invoke(_data);
 
-        public void SetData(PlanetarnyReductorDetail data) {
+        public void SetData(IDetailPart data) {
             _data = data;
 
             UpdateView();
         }
+
+        public void Active()
+            => gameObject.SetActive(true);
 
         private void UpdateView() {
             label.text = _data.PartName;

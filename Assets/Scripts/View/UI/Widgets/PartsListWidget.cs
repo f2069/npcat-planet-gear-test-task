@@ -1,11 +1,11 @@
-﻿using PlanetGearScheme.Core.Data;
+﻿using System.Collections.Generic;
 using PlanetGearScheme.Core.Disposables;
 using PlanetGearScheme.Core.Interfaces;
 using TMPro;
 using UnityEngine;
 
 namespace PlanetGearScheme.View.UI.Widgets {
-    public class PartsListWidget : MonoBehaviour, IItemRenderer<PlanetarnyReductor> {
+    public class PartsListWidget : MonoBehaviour, IListRenderer<IDetail, IDetailPart> {
         [SerializeField] private TMP_Text mainLabel;
         [SerializeField] private Transform container;
         [SerializeField] private Transform itemPrefab;
@@ -16,7 +16,7 @@ namespace PlanetGearScheme.View.UI.Widgets {
 
         public delegate void OnSwitchList(bool listState);
 
-        public delegate void OnSelectPart(PlanetarnyReductorDetail partData);
+        public delegate void OnSelectPart(IDetailPart partData);
 
         private event OnSwitchList OnSwitchListEvent;
         private event OnSelectPart OnSelectPartEvent;
@@ -28,7 +28,7 @@ namespace PlanetGearScheme.View.UI.Widgets {
         private void OnDestroy()
             => _trash.Dispose();
 
-        private void ChangeActivePart(PlanetarnyReductorDetail partData)
+        private void ChangeActivePart<TItemType>(TItemType partData) where TItemType : IDetailPart
             => OnSelectPartEvent?.Invoke(partData);
 
         public ActionDisposable SubscribeOnSwitchList(OnSwitchList call) {
@@ -51,10 +51,13 @@ namespace PlanetGearScheme.View.UI.Widgets {
             OnSwitchListEvent?.Invoke(_listState);
         }
 
-        public void SetData(PlanetarnyReductor data) {
+        public void SetData<TItemType>(
+            IDetail data,
+            List<TItemType> detailParts
+        ) where TItemType : IDetailPart {
             mainLabel.text = data.DetailName;
 
-            foreach (var partData in data.Parts) {
+            foreach (var partData in detailParts) {
                 if (partData.HideInMenu) {
                     continue;
                 }
@@ -62,10 +65,10 @@ namespace PlanetGearScheme.View.UI.Widgets {
                 var partWidget = Instantiate(itemPrefab, container)
                     .GetComponent<PartWidget>();
 
-                partWidget.SetData(partData);
                 _trash.Retain(partWidget.SubscribeOnChange(ChangeActivePart));
 
-                partWidget.gameObject.SetActive(true);
+                partWidget.SetData(partData);
+                partWidget.Active();
             }
         }
     }

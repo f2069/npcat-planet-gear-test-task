@@ -1,5 +1,5 @@
-﻿using PlanetGearScheme.Core.Data;
-using PlanetGearScheme.Core.Dictionares;
+﻿using PlanetGearScheme.Core.Dictionares;
+using PlanetGearScheme.Core.Interfaces;
 
 namespace PlanetGearScheme.View.Details {
     public class DetailView : BaseDetailView {
@@ -19,7 +19,7 @@ namespace PlanetGearScheme.View.Details {
             }
         }
 
-        public void SelectPart(PlanetarnyReductorDetail partData) {
+        public void SelectPart(IDetailPart partData) {
             if (IsAnimated) {
                 return;
             }

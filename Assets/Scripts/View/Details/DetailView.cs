@@ -1,59 +1,46 @@
 ﻿using PlanetGearScheme.Core.Data;
 using PlanetGearScheme.Core.Dictionares;
-using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace PlanetGearScheme.View.Details {
-    [RequireComponent(
-        typeof(PlayerInput),
-        typeof(Animator)
-    )]
     public class DetailView : BaseDetailView {
-        public void SetStateView(bool expandDetail) {
-            if (_isExpanded == expandDetail || _isAnimated) {
+        public void DisassembleDetail(bool expandDetail) {
+            if (IsExpanded == expandDetail || IsAnimated) {
                 return;
             }
 
-            _isAnimated = true;
-            _lockRotate = true;
-            _isExpanded = expandDetail;
+            IsAnimated = true;
+            LockRotate = true;
+            IsExpanded = expandDetail;
 
-            if (!_isExpanded) {
-                SetCameraAxis(_mainViewCamera, _startCameraAxis, false);
-                SetFollowTarget(_startTransform);
-                SetChildView(true);
+            if (CurrentPartName != null && !IsExpanded) {
+                SetReviewCamera(AnimateExplosionDetail);
+            } else {
+                AnimateExplosionDetail();
             }
-
-            _animator.SetBool(DetailAnimatorConstants.SplitAnimationKey, _isExpanded);
         }
 
         public void SelectPart(PlanetarnyReductorDetail partData) {
-            if (Equals(_currentPart, partData)) {
-                _lockRotate = true;
+            if (IsAnimated) {
+                return;
+            }
 
-                SetCameraAxis(_reviewCamera, _startCameraAxis, false);
-                SetFollowTarget(_startTransform);
-                SetChildView(true);
+            if (CurrentPartName == partData.ObjectName) {
+                LockRotate = true;
+                IsAnimated = true;
 
-                OnAnimationSetReviewCamera();
+                SetReviewCamera(() => { IsAnimated = false; });
 
                 return;
             }
 
-            _currentPart = partData;
-            SetCameraAxis(_partViewCamera, _startCameraAxis, false);
-            SetChildView(false);
+            CurrentPartName = partData.ObjectName;
 
-            var partGo = root.Find(partData.ObjectName);
-            partGo.gameObject.SetActive(true);
+            var partTransform = root.Find(partData.ObjectName);
+            SetPartCamera(partTransform);
+        }
 
-            SetFollowTarget(partGo);
-
-            _stateDrivenCameraAnimator.CrossFade(StateDrivenCameraAnimatorConstants.PartViewState, 0);
-
-            _lockRotate = false;
-
-            _currentFreeLookCamera = _partViewCamera;
+        private void AnimateExplosionDetail() {
+            DetailAnimator.SetBool(DetailAnimatorConstants.SplitAnimationKey, IsExpanded);
         }
     }
 }

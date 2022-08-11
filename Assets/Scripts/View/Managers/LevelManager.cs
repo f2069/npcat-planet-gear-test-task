@@ -44,7 +44,7 @@ namespace PlanetGearScheme.View.Managers {
             _modelView = Instantiate(detailData.Prefab, detailSpawnPoint)
                 .GetComponent<DetailView>();
 
-            _modelView.SetCameras(
+            _modelView.SetCamers(
                 stateDrivenCamera,
                 mainViewCamera,
                 reviewCamera,
@@ -53,7 +53,7 @@ namespace PlanetGearScheme.View.Managers {
         }
 
         private void OnToggleList(bool listState)
-            => _modelView.SetStateView(listState);
+            => _modelView.DisassembleDetail(listState);
 
         private void OnSelectPart(PlanetarnyReductorDetail partData)
             => _modelView.SelectPart(partData);

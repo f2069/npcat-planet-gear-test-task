@@ -1,36 +1,45 @@
-﻿using Cinemachine;
-using PlanetGearScheme.Core.Data;
+﻿using System;
+using System.Collections;
+using Cinemachine;
 using PlanetGearScheme.Core.Dictionares;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace PlanetGearScheme.View.Details {
+    [RequireComponent(
+        typeof(PlayerInput),
+        typeof(Animator)
+    )]
     public abstract class BaseDetailView : MonoBehaviour {
         [SerializeField] protected Transform root;
+        [SerializeField] protected float delayBeforeShowParts = .5f;
 
-        protected Animator _animator;
-        protected Animator _stateDrivenCameraAnimator;
-        protected CinemachineStateDrivenCamera _stateDrivenCamera;
-        protected CinemachineFreeLook _mainViewCamera;
-        protected CinemachineFreeLook _reviewCamera;
-        protected CinemachineFreeLook _partViewCamera;
-        protected CinemachineFreeLook _currentFreeLookCamera;
-        protected Transform _startTransform;
-        protected Vector2 _startCameraAxis;
-        protected PlanetarnyReductorDetail? _currentPart;
+        protected Animator DetailAnimator;
 
-        protected bool _lockRotate;
-        protected bool _isExpanded;
-        protected bool _isHoldPointer;
-        protected bool _isAnimated;
+        private CinemachineFreeLook _mainViewCamera;
+        private CinemachineFreeLook _reviewCamera;
+        private CinemachineFreeLook _partViewCamera;
+        private CinemachineFreeLook _currentFreeLookCamera;
+        private Transform _startTransform;
+        private Vector2 _startCameraAxis;
+        private Animator _stateDrivenCameraAnimator;
+        private CinemachineStateDrivenCamera _stateDrivenCamera;
+        private Coroutine _reviewCameraCoroutine;
+
+        protected string CurrentPartName;
+        protected bool LockRotate;
+        protected bool IsExpanded;
+        protected bool IsAnimated;
+
+        private bool _isHoldPointer;
 
         protected virtual void Awake() {
             _startTransform = transform;
 
-            _animator = GetComponent<Animator>();
+            DetailAnimator = GetComponent<Animator>();
         }
 
-        public void SetCameras(
+        public void SetCamers(
             CinemachineStateDrivenCamera drivenCamera,
             CinemachineFreeLook mainViewCamera,
             CinemachineFreeLook reviewCamera,
@@ -52,39 +61,35 @@ namespace PlanetGearScheme.View.Details {
 
             SetFollowTarget(_startTransform);
 
-            _startCameraAxis = new Vector2(_currentFreeLookCamera.m_XAxis.Value, _currentFreeLookCamera.m_YAxis.Value);
+            _startCameraAxis = new Vector2(
+                _currentFreeLookCamera.m_XAxis.Value,
+                _currentFreeLookCamera.m_YAxis.Value
+            );
         }
 
-#region AnimatorCallbacks
+#region AnimatorCallbackEvents
 
-        public void OnAnimationSetReviewCamera() {
-            _currentPart = null;
-            _currentFreeLookCamera = _reviewCamera;
-            _stateDrivenCameraAnimator.CrossFade(StateDrivenCameraAnimatorConstants.ReviewState, 0);
-        }
+        public void OnAnimationSetReviewCamera()
+            => SetReviewCamera();
 
-        public void OnAnimationSetPartCamera() {
-            _currentFreeLookCamera = _mainViewCamera;
-            SetCameraAxis(_currentFreeLookCamera, _startCameraAxis, false);
-
-            _stateDrivenCameraAnimator.CrossFade(StateDrivenCameraAnimatorConstants.MainViewState, 0);
-        }
+        public void OnAnimationSetMainViewCamera()
+            => SetMainViewCamera();
 
         public void OnAnimationUnlockRotate()
-            => _lockRotate = false;
+            => LockRotate = false;
 
         public void OnAnimationEnd()
-            => _isAnimated = false;
+            => IsAnimated = false;
 
 #endregion
 
-#region UserInput
+#region UserInputActions
 
         public void OnHoldPointer(InputValue inputValue)
             => _isHoldPointer = inputValue.isPressed;
 
         public void OnLook(InputValue inputValue) {
-            if (_lockRotate || !enabled) {
+            if (LockRotate || !enabled) {
                 return;
             }
 
@@ -99,10 +104,60 @@ namespace PlanetGearScheme.View.Details {
 
 #endregion
 
-        protected void SetFollowTarget(Transform target)
+        protected void ResetPartState(CinemachineFreeLook targetCamera, bool showChilds = true) {
+            CurrentPartName = null;
+            _currentFreeLookCamera = targetCamera;
+
+            SetCameraAxis(targetCamera, _startCameraAxis, false);
+            SetFollowTarget(_startTransform);
+
+            if (showChilds) {
+                SetChildView(true);
+            }
+        }
+
+        protected void SetMainViewCamera() {
+            ResetPartState(_mainViewCamera);
+
+            SetCameraAnimatorState(StateDrivenCameraAnimatorConstants.MainViewState);
+        }
+
+        protected void SetReviewCamera(Action callback = null) {
+            TryStopCoroutine(ref _reviewCameraCoroutine);
+
+            ResetPartState(_reviewCamera, false);
+
+            SetCameraAnimatorState(StateDrivenCameraAnimatorConstants.ReviewState);
+
+            _reviewCameraCoroutine = StartCoroutine(AfterSetReviewState(callback));
+        }
+
+        private IEnumerator AfterSetReviewState(Action callback) {
+            yield return new WaitForSeconds(delayBeforeShowParts);
+
+            SetChildView(true);
+
+            callback?.Invoke();
+        }
+
+        protected void SetPartCamera(Transform partTransform) {
+            SetCameraAxis(_partViewCamera, _startCameraAxis, false);
+            SetFollowTarget(partTransform);
+            SetChildView(false);
+
+            partTransform.gameObject.SetActive(true);
+
+            SetCameraAnimatorState(StateDrivenCameraAnimatorConstants.PartViewState);
+
+            LockRotate = false;
+
+            _currentFreeLookCamera = _partViewCamera;
+        }
+
+        private void SetFollowTarget(Transform target)
             => _stateDrivenCamera.LookAt = _stateDrivenCamera.Follow = target;
 
-        protected void SetCameraAxis(CinemachineFreeLook targetCamera, Vector2 axisValue, bool inputValue) {
+        private void SetCameraAxis(CinemachineFreeLook targetCamera, Vector2 axisValue, bool inputValue) {
             if (inputValue) {
                 targetCamera.m_XAxis.m_InputAxisValue = axisValue.x;
                 targetCamera.m_YAxis.m_InputAxisValue = axisValue.y;
@@ -114,10 +169,22 @@ namespace PlanetGearScheme.View.Details {
             targetCamera.m_YAxis.Value = axisValue.y;
         }
 
-        protected void SetChildView(bool value) {
+        private void SetChildView(bool value) {
             for (var i = 0; i < root.childCount; i++) {
                 root.GetChild(i).gameObject.SetActive(value);
             }
+        }
+
+        private void SetCameraAnimatorState(string state)
+            => _stateDrivenCameraAnimator.CrossFade(state, 0);
+
+        private void TryStopCoroutine(ref Coroutine targetCoroutine) {
+            if (targetCoroutine == null) {
+                return;
+            }
+
+            StopCoroutine(targetCoroutine);
+            targetCoroutine = null;
         }
     }
 }
